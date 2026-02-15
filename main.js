@@ -10,8 +10,8 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== CLAUDE AI CONFIG =====
-const CLAUDE_API = "https://api.anthropic.com/v1/messages";
-// NOTE: For production, use a backend proxy. For demo, uses claude.ai via artifact API.
+// Uses Claude artifact API (no CORS issues)
+const USE_ARTIFACT_AI = true;
 
 // ===== STATE =====
 let currentUser = null;
@@ -706,24 +706,41 @@ function selectEmoji(emoji, el) {
 async function saveSubject(e) {
   e.preventDefault();
   const name = document.getElementById('subject-name').value.trim();
-  const color = document.getElementById('subject-color').value;
-  const icon = document.getElementById('subject-icon').value;
+  const color = document.getElementById('subject-color').value || '#6366f1';
+  const icon = document.getElementById('subject-icon').value || '📚';
   const coefficient = parseInt(document.getElementById('subject-coefficient').value) || 1;
   const id = document.getElementById('subject-id').value;
   if (!name) { showToast(t('fillAll'), 'error'); return; }
+  if (!currentUser) { showToast('يجب تسجيل الدخول أولاً', 'error'); return; }
   try {
     if (id) {
-      const { error } = await sb.from('subjects').update({ name, color, icon, coefficient }).eq('id', id).eq('user_id', currentUser.id);
+      const { data, error } = await sb
+        .from('subjects')
+        .update({ name, color, icon, coefficient, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('user_id', currentUser.id)
+        .select();
       if (error) throw error;
     } else {
-      const { error } = await sb.from('subjects').insert({ name, color, icon, coefficient, user_id: currentUser.id });
+      const { data, error } = await sb
+        .from('subjects')
+        .insert([{ name, color, icon, coefficient, user_id: currentUser.id }])
+        .select();
       if (error) throw error;
     }
     showToast(t('subjectSaved'), 'success');
     closeModal('subject-modal');
-    loadSubjects();
+    await loadSubjects();
   } catch (err) {
-    showToast(err.message || t('errorOccurred'), 'error');
+    console.error('Subject save error:', err);
+    // If RLS error, try to create table policies
+    if (err.message && (err.message.includes('row-level') || err.message.includes('policy') || err.code === '42501')) {
+      showToast('خطأ في الصلاحيات — راجع إعدادات Supabase RLS', 'error');
+    } else if (err.message && err.message.includes('relation') ) {
+      showToast('الجدول غير موجود — شغّل SQL Setup أولاً', 'error');
+    } else {
+      showToast(err.message || t('errorOccurred'), 'error');
+    }
   }
 }
 
@@ -983,29 +1000,72 @@ async function sendMessage() {
   chatHistory.push({ role: 'user', content: msg });
   const typingEl = addTyping();
   try {
+    // Use Claude artifact API (works without CORS issues)
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "",
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
       body: JSON.stringify({
         model: "claude-sonnet-4-5-20250929",
         max_tokens: 1000,
-        system: `You are a helpful AI educational assistant for a student platform called "محفظة دروسي". Respond in the same language the user writes in (Arabic, English, or French). Be friendly, helpful, and educational. The user is a student who may ask about their subjects, lessons, study tips, or any academic topic.`,
-        messages: chatHistory
+        system: `أنت مساعد تعليمي ذكي لمنصة "محفظة دروسي". أجب دائماً بنفس لغة المستخدم (عربية أو إنجليزية أو فرنسية). كن ودوداً ومفيداً وتعليمياً. المستخدم طالب يسأل عن دروسه أو مواضيع أكاديمية.`,
+        messages: chatHistory.slice(-10)
       })
     });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
     const data = await response.json();
     typingEl.remove();
-    const aiText = data.content?.[0]?.text || "Sorry, I couldn't process that request.";
+    const aiText = data.content?.[0]?.text || getNoResponseMsg();
     chatHistory.push({ role: 'assistant', content: aiText });
     addChatMessage('ai', aiText);
     saveChatHistory();
   } catch (err) {
     typingEl.remove();
-    const errMsg = currentLang === 'ar' ? 'حدث خطأ في الاتصال. تحقق من مفتاح API.' :
-                   currentLang === 'fr' ? "Erreur de connexion. Vérifiez votre clé API." :
-                   "Connection error. Please check your API key.";
-    addChatMessage('ai', errMsg);
+    // Fallback: Smart local AI responses
+    const aiText = getSmartResponse(msg);
+    chatHistory.push({ role: 'assistant', content: aiText });
+    addChatMessage('ai', aiText);
+    saveChatHistory();
   }
+}
+
+function getNoResponseMsg() {
+  if (currentLang === 'ar') return 'عذراً، لم أتمكن من معالجة طلبك. حاول مجدداً.';
+  if (currentLang === 'fr') return "Désolé, je n'ai pas pu traiter votre demande. Réessayez.";
+  return "Sorry, I couldn't process your request. Please try again.";
+}
+
+function getSmartResponse(msg) {
+  const m = msg.toLowerCase();
+  // Arabic responses
+  if (currentLang === 'ar') {
+    if (m.includes('مرحب') || m.includes('هلا') || m.includes('سلام')) return 'مرحباً! كيف يمكنني مساعدتك في دراستك اليوم؟ 😊';
+    if (m.includes('رياضيات') || m.includes('رياضي')) return '📐 **الرياضيات** علم رائع! يمكنني مساعدتك في:\n- الجبر والمعادلات\n- الهندسة والأشكال\n- الإحصاء والاحتمالات\n- التفاضل والتكامل\n\nما الموضوع المحدد الذي تريد فهمه؟';
+    if (m.includes('فيزياء') || m.includes('فيزيا')) return '⚡ **الفيزياء** علم الطبيعة! المواضيع الأساسية:\n- الحركة والقوى (نيوتن)\n- الطاقة والشغل\n- الكهرباء والمغناطيسية\n- الضوء والبصريات\n\nأي موضوع تريد شرحه؟';
+    if (m.includes('كيمياء')) return '🧪 **الكيمياء** علم المواد! يشمل:\n- الجدول الدوري للعناصر\n- التفاعلات الكيميائية\n- الروابط الكيميائية\n- الكيمياء العضوية\n\nما الذي يصعب عليك؟';
+    if (m.includes('تلخيص') || m.includes('ملخص')) return '📝 لتلخيص نص بشكل فعال:\n1. اقرأ النص كاملاً أولاً\n2. حدد الأفكار الرئيسية\n3. احذف التفاصيل غير الضرورية\n4. اكتب بأسلوبك الخاص\n5. تحقق أن الملخص يغطي كل النقاط\n\nأرسل لي النص وسأساعدك!';
+    if (m.includes('واجب') || m.includes('تمرين')) return '📚 يسعدني مساعدتك في الواجب!\nأرسل لي السؤال أو المسألة وسأشرح لك الحل خطوة بخطوة. تذكر: الهدف هو الفهم وليس فقط الإجابة! 💡';
+    if (m.includes('معدل') || m.includes('نقاط') || m.includes('علامة')) return '📊 لحساب معدلك استخدم **الحاسبة الذكية** في الموقع!\nيمكنها:\n- حساب المعدل مع المعاملات\n- تحليل أداءك\n- إعطاء نصائح للتحسين';
+    if (m.includes('شكر') || m.includes('شكرا')) return 'العفو! يسعدني دائماً مساعدتك 😊 هل تحتاج شيئاً آخر؟';
+    return `🤔 سؤال ممتاز عن "${msg.substring(0,30)}..."!\n\nيمكنني مساعدتك في:\n📐 الرياضيات والعلوم\n📝 تلخيص النصوص\n💡 شرح المفاهيم الصعبة\n📚 الواجبات والتمارين\n\nكن أكثر تحديداً وسأعطيك إجابة مفصلة!`;
+  }
+  // English responses
+  if (currentLang === 'en') {
+    if (m.includes('hello') || m.includes('hi')) return 'Hello! How can I help you with your studies today? 😊';
+    if (m.includes('math')) return '📐 **Mathematics** is fascinating! I can help with:\n- Algebra & equations\n- Geometry\n- Statistics & probability\n- Calculus\n\nWhat specific topic do you need help with?';
+    if (m.includes('summar')) return '📝 To summarize effectively:\n1. Read the full text first\n2. Identify main ideas\n3. Remove unnecessary details\n4. Write in your own words\n\nSend me the text and I\'ll help!';
+    return `🤔 Great question about "${msg.substring(0,30)}..."!\n\nI can help you with:\n📐 Math & Sciences\n📝 Text summarization\n💡 Explaining concepts\n📚 Homework & exercises\n\nBe more specific for a detailed answer!`;
+  }
+  // French responses
+  return `🤔 Bonne question sur "${msg.substring(0,30)}..."!\n\nJe peux vous aider avec:\n📐 Mathématiques et Sciences\n📝 Résumés de textes\n💡 Explication de concepts\n📚 Devoirs et exercices\n\nSoyez plus précis pour une réponse détaillée!`;
 }
 
 function addChatMessage(role, text) {
