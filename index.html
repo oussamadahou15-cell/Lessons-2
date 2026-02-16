@@ -205,33 +205,50 @@
           <div class="auth-orb a1"></div>
           <div class="auth-orb a2"></div>
         </div>
-        <div class="auth-card">
-          <div class="auth-logo">📚</div>
+        <div class="auth-card modern-auth">
+          <div class="auth-brand">
+            <div class="brand-icon">📚</div>
+            <div class="brand-text">
+              <h1 class="brand-title">محفظة دروسي</h1>
+              <p class="brand-subtitle">منصتك التعليمية المتكاملة</p>
+            </div>
+          </div>
           <h2 class="auth-title" data-i18n="welcomeBack">مرحباً بعودتك</h2>
           <p class="auth-sub" data-i18n="loginSub">سجّل الدخول لمتابعة دروسك</p>
           <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group">
+            <div class="form-group modern-input">
               <label data-i18n="email">البريد الإلكتروني</label>
-              <input type="email" id="login-email" class="form-input" placeholder="example@email.com" required />
+              <div class="input-with-icon">
+                <span class="input-icon">✉️</span>
+                <input type="email" id="login-email" class="form-input" placeholder="example@email.com" required />
+              </div>
             </div>
-            <div class="form-group">
+            <div class="form-group modern-input">
               <label data-i18n="password">كلمة المرور</label>
-              <div class="input-wrap">
+              <div class="input-wrap password-wrap">
+                <span class="input-icon">🔒</span>
                 <input type="password" id="login-password" class="form-input" placeholder="••••••••" required />
                 <button type="button" class="eye-btn" onclick="togglePass('login-password')">👁</button>
               </div>
             </div>
             <div class="form-options">
+              <label class="remember-me">
+                <input type="checkbox" id="remember-me">
+                <span>تذكرني</span>
+              </label>
               <a href="#" class="forgot-link" onclick="showPage('forgot')" data-i18n="forgotPass">نسيت كلمة المرور؟</a>
             </div>
-            <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+            <button type="submit" class="btn btn-primary btn-full modern-btn" id="login-btn">
               <span data-i18n="login">تسجيل الدخول</span>
               <span class="btn-spinner" id="login-spinner" style="display:none">⏳</span>
             </button>
           </form>
+          <div class="auth-divider">
+            <span>أو</span>
+          </div>
           <p class="auth-switch">
             <span data-i18n="noAccount">ليس لديك حساب؟</span>
-            <a href="#" onclick="showPage('register')" data-i18n="createAccount"> أنشئ حساباً</a>
+            <a href="#" class="auth-link-btn" onclick="showPage('register')" data-i18n="createAccount"> أنشئ حساباً</a>
           </p>
         </div>
       </div>
@@ -375,7 +392,7 @@
           <div class="chat-header-bar">
             <span>🤖</span>
             <span data-i18n="aiAssistant">المساعد الذكي</span>
-            <div class="chat-model-badge">Claude AI</div>
+            <div class="chat-model-badge">Gemini AI</div>
           </div>
           <div id="chat-messages" class="chat-messages">
             <div class="chat-welcome">
@@ -390,8 +407,17 @@
               </div>
             </div>
           </div>
+          <div id="chat-image-preview" class="chat-image-preview" style="display:none"></div>
           <div class="chat-input-area">
             <div class="chat-input-wrap">
+              <label for="chat-image-input" class="chat-image-btn" title="رفع صورة 📷">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </label>
+              <input type="file" id="chat-image-input" accept="image/*" onchange="handleChatImageUpload(event)" style="display:none" />
               <textarea id="chat-input" class="chat-textarea" placeholder="" data-i18n-placeholder="chatPlaceholder" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
               <button class="chat-send-btn" onclick="sendMessage()" id="send-btn">
                 <span>➤</span>
@@ -517,7 +543,7 @@
               <span class="tech-tag">CSS3</span>
               <span class="tech-tag">JavaScript</span>
               <span class="tech-tag">Supabase</span>
-              <span class="tech-tag">Claude AI</span>
+              <span class="tech-tag">Gemini AI</span>
             </div>
           </div>
           <div class="about-card">
