@@ -1,698 +1,723 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>محفظة دروسي</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700;900&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600;700&family=Abril+Fatface&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="rtl" data-lang="ar">
+<body data-lang="ar">
 
-  <!-- ===== LOADING SCREEN ===== -->
-  <div id="loading-screen">
-    <div class="loader-inner">
-      <div class="loader-logo">📚</div>
-      <div class="loader-text">محفظة دروسي</div>
-      <div class="loader-bar"><div class="loader-fill"></div></div>
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loader-inner">
+    <div class="loader-logo">📚</div>
+    <div class="loader-text">محفظة دروسي</div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- NAV -->
+<nav id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('feed')">
+      <span class="logo-icon">📚</span>
+      <span class="logo-text">محفظة دروسي</span>
+    </div>
+    <!-- Search Bar -->
+    <div class="nav-search" id="nav-search-wrap" style="display:none">
+      <input type="text" id="nav-search" placeholder="ابحث عن طلاب أو دروس..." oninput="searchUsers(this.value)" autocomplete="off"/>
+      <div id="search-results" class="search-dropdown"></div>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLang('ar')">ع</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('fr')">FR</button>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span></button>
+      <!-- Notifications -->
+      <div id="notif-btn" style="display:none;position:relative">
+        <button class="icon-nav-btn" onclick="toggleNotifications()">🔔<span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
+        <div id="notif-dropdown" class="notif-dropdown"></div>
+      </div>
+      <!-- Messages -->
+      <div id="msg-btn" style="display:none;position:relative">
+        <button class="icon-nav-btn" onclick="showPage('messages')">💬<span id="msg-badge" class="notif-badge msg-badge" style="display:none">0</span></button>
+      </div>
+      <div id="auth-nav-btns">
+        <button class="btn btn-outline-sm" onclick="showPage('login')">دخول</button>
+        <button class="btn btn-primary-sm" onclick="showPage('register')">حساب جديد</button>
+      </div>
+      <div id="user-nav" style="display:none">
+        <div class="user-avatar-nav" onclick="toggleUserMenu()">
+          <img id="user-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover"/>
+          <span id="user-initial">أ</span>
+          <div id="user-dropdown" class="user-dropdown">
+            <div class="user-info-drop">
+              <strong id="user-name-drop"></strong>
+              <span id="user-email-drop"></span>
+            </div>
+            <a href="#" onclick="showMyProfile()">👤 <span>ملفي الشخصي</span></a>
+            <a href="#" onclick="showPage('subjects')">📚 <span>مقاييسي</span></a>
+            <a href="#" onclick="showPage('settings')">⚙️ <span>الإعدادات</span></a>
+            <a href="#" onclick="logout()" style="color:var(--danger)">🚪 <span>خروج</span></a>
+          </div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
+  <!-- Mobile bottom nav -->
+  <div class="mobile-bottom-nav" id="mobile-bottom-nav" style="display:none">
+    <button onclick="showPage('feed')">🏠<span>الرئيسية</span></button>
+    <button onclick="showPage('discover')">🔍<span>اكتشف</span></button>
+    <button onclick="openPostModal()">➕<span>نشر</span></button>
+    <button onclick="showPage('messages')">💬<span>رسائل</span></button>
+    <button onclick="showMyProfile()">👤<span>حسابي</span></button>
+  </div>
+</nav>
 
-  <!-- ===== TOAST NOTIFICATIONS ===== -->
-  <div id="toast-container"></div>
+<main id="app">
 
-  <!-- ===== NAVIGATION ===== -->
-  <nav id="main-nav">
-    <div class="nav-inner">
-      <div class="nav-logo" onclick="showPage('home')">
-        <span class="logo-icon">📚</span>
-        <span class="logo-text" data-i18n="appName">محفظة دروسي</span>
+  <!-- ===== HOME PAGE (pre-login) ===== -->
+  <div id="page-home" class="page active">
+    <div class="hero-section">
+      <div class="hero-bg">
+        <div class="hero-orb orb1"></div>
+        <div class="hero-orb orb2"></div>
+        <div class="hero-orb orb3"></div>
+        <div class="hero-grid"></div>
       </div>
-      <div class="nav-center" id="nav-links">
-        <a href="#" class="nav-link" onclick="showPage('home')" data-i18n="home">الرئيسية</a>
-        <a href="#" class="nav-link" id="nav-subjects" onclick="showPage('subjects')" data-i18n="subjects" style="display:none">المقاييس</a>
-        <a href="#" class="nav-link" id="nav-lessons" onclick="showPage('lessons')" data-i18n="lessons" style="display:none">الدروس</a>
-        <a href="#" class="nav-link" id="nav-chat" onclick="showPage('chat')" data-i18n="aiChat" style="display:none">الذكاء الاصطناعي</a>
-        <a href="#" class="nav-link" id="nav-calc" onclick="showPage('calculator')" data-i18n="calculator" style="display:none">الحاسبة</a>
-        <a href="#" class="nav-link" id="nav-admin" onclick="showPage('admin')" data-i18n="admin" style="display:none">الإدارة</a>
-        <a href="#" class="nav-link" onclick="showPage('about')" data-i18n="about">حول المشروع</a>
-      </div>
-      <div class="nav-actions">
-        <!-- Language Switcher -->
-        <div class="lang-switcher">
-          <button class="lang-btn active" onclick="setLang('ar')">ع</button>
-          <button class="lang-btn" onclick="setLang('en')">EN</button>
-          <button class="lang-btn" onclick="setLang('fr')">FR</button>
-        </div>
-        <!-- Dark Mode Toggle -->
-        <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع">
-          <span id="theme-icon">🌙</span>
-        </button>
-        <!-- Auth Buttons -->
-        <div id="auth-nav-btns">
-          <button class="btn btn-outline-sm" onclick="showPage('login')" data-i18n="login">دخول</button>
-          <button class="btn btn-primary-sm" onclick="showPage('register')" data-i18n="register">حساب جديد</button>
-        </div>
-        <div id="user-nav" style="display:none">
-          <div class="user-avatar-nav" onclick="toggleUserMenu()">
-            <span id="user-initial">أ</span>
-            <div id="user-dropdown" class="user-dropdown">
-              <div class="user-info-drop">
-                <span id="user-email-drop"></span>
-              </div>
-              <a href="#" onclick="showPage('profile')"><span>👤</span> <span data-i18n="profile">الملف الشخصي</span></a>
-              <a href="#" onclick="logout()"><span>🚪</span> <span data-i18n="logout">تسجيل الخروج</span></a>
+      <div class="hero-content">
+        <div class="hero-badge">🎓 <span>شبكة الطلاب التعليمية</span></div>
+        <h1 class="hero-title"><span>محفظة</span> <span class="highlight">دروسي</span></h1>
+        <p class="hero-sub">شارك دروسك، تواصل مع زملائك، وتعلّم معاً — المنصة الاجتماعية الأولى للطلاب</p>
+        <div class="hero-owner">
+          <div class="owner-card">
+            <div class="owner-avatar">دأ</div>
+            <div class="owner-info">
+              <span class="owner-name">دحو أسامة</span>
+              <span class="owner-uni">🎓 جامعة النعامة</span>
             </div>
           </div>
         </div>
-        <!-- Hamburger -->
-        <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </div>
-    <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobile-menu">
-      <a href="#" class="mobile-link" onclick="showPage('home');closeMobileMenu()" data-i18n="home">الرئيسية</a>
-      <a href="#" class="mobile-link mobile-auth-hidden" onclick="showPage('subjects');closeMobileMenu()" data-i18n="subjects">المقاييس</a>
-      <a href="#" class="mobile-link mobile-auth-hidden" onclick="showPage('lessons');closeMobileMenu()" data-i18n="lessons">الدروس</a>
-      <a href="#" class="mobile-link mobile-auth-hidden" onclick="showPage('chat');closeMobileMenu()" data-i18n="aiChat">الذكاء الاصطناعي</a>
-      <a href="#" class="mobile-link mobile-auth-hidden" onclick="showPage('calculator');closeMobileMenu()" data-i18n="calculator">الحاسبة</a>
-      <a href="#" class="mobile-link" onclick="showPage('about');closeMobileMenu()" data-i18n="about">حول المشروع</a>
-      <div class="mobile-auth-btns" id="mobile-auth-btns">
-        <button class="btn btn-outline" onclick="showPage('login');closeMobileMenu()" data-i18n="login">دخول</button>
-        <button class="btn btn-primary" onclick="showPage('register');closeMobileMenu()" data-i18n="register">حساب جديد</button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- ===== PAGES WRAPPER ===== -->
-  <main id="app">
-
-    <!-- HOME PAGE -->
-    <div id="page-home" class="page active">
-      <div class="hero-section">
-        <div class="hero-bg">
-          <div class="hero-orb orb1"></div>
-          <div class="hero-orb orb2"></div>
-          <div class="hero-orb orb3"></div>
-          <div class="hero-grid"></div>
+        <div class="hero-actions">
+          <button class="btn btn-hero-primary" onclick="showPage('register')">ابدأ مجاناً <span class="btn-arrow">←</span></button>
+          <button class="btn btn-hero-outline" onclick="showPage('login')">تسجيل الدخول</button>
         </div>
-        <div class="hero-content">
-          <div class="hero-badge">
-            <span>🎓</span>
-            <span data-i18n="heroBadge">منصة تعليمية متكاملة</span>
-          </div>
-          <h1 class="hero-title">
-            <span data-i18n="heroTitle1">محفظة</span>
-            <span class="highlight" data-i18n="heroTitle2">دروسي</span>
-          </h1>
-          <p class="hero-sub" data-i18n="heroSub">نظّم دروسك، ارفع ملفاتك، وتواصل مع الذكاء الاصطناعي — كل ما تحتاجه في مكان واحد</p>
-          <div class="hero-owner">
-            <div class="owner-card">
-              <div class="owner-avatar">دأ</div>
-              <div class="owner-info">
-                <span class="owner-name">دحو أسامة</span>
-                <span class="owner-uni" data-i18n="university">جامعة النعامة</span>
-              </div>
-            </div>
-          </div>
-          <div class="hero-actions">
-            <button class="btn btn-hero-primary" onclick="showPage('register')">
-              <span data-i18n="startFree">ابدأ مجاناً</span>
-              <span class="btn-arrow">←</span>
-            </button>
-            <button class="btn btn-hero-outline" onclick="showPage('login')">
-              <span data-i18n="login">تسجيل الدخول</span>
-            </button>
-          </div>
-          <div class="hero-stats">
-            <div class="stat">
-              <span class="stat-num">∞</span>
-              <span class="stat-label" data-i18n="statFiles">ملفات بلا حدود</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat">
-              <span class="stat-num">3</span>
-              <span class="stat-label" data-i18n="statLangs">لغات</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat">
-              <span class="stat-num">AI</span>
-              <span class="stat-label" data-i18n="statAI">ذكاء اصطناعي</span>
-            </div>
-          </div>
-        </div>
-        <div class="hero-visual">
-          <div class="floating-cards">
-            <div class="fc fc1">📄 <span>ملف PDF</span></div>
-            <div class="fc fc2">🎥 <span>فيديو</span></div>
-            <div class="fc fc3">🤖 <span>AI Chat</span></div>
-            <div class="fc fc4">📊 <span>PPT</span></div>
-            <div class="fc fc5">🎵 <span>صوت</span></div>
-          </div>
+        <div class="hero-stats">
+          <div class="stat"><span class="stat-num">📚</span><span class="stat-label">دروس مشتركة</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">👥</span><span class="stat-label">مجتمع طلابي</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">💬</span><span class="stat-label">دردشة فورية</span></div>
         </div>
       </div>
-
-      <!-- Features Section -->
-      <section class="features-section">
-        <div class="section-header">
-          <h2 data-i18n="featuresTitle">مميزات المنصة</h2>
-          <p data-i18n="featuresSub">كل ما تحتاجه لتنظيم حياتك الدراسية</p>
-        </div>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-blue)">📚</div>
-            <h3 data-i18n="feat1Title">إدارة المقاييس</h3>
-            <p data-i18n="feat1Desc">أضف وعدّل ونظّم مقاييسك بطريقة بصرية أنيقة</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-purple)">📁</div>
-            <h3 data-i18n="feat2Title">رفع الملفات</h3>
-            <p data-i18n="feat2Desc">PDF, Word, PPT, صور, فيديو, صوت — كل الصيغ مدعومة</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-green)">🤖</div>
-            <h3 data-i18n="feat3Title">ذكاء اصطناعي</h3>
-            <p data-i18n="feat3Desc">اسأل AI أي سؤال واحصل على إجابات فورية</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-orange)">🧮</div>
-            <h3 data-i18n="feat4Title">حاسبة المعدل</h3>
-            <p data-i18n="feat4Desc">احسب معدلك الدراسي واحصل على تحليل كامل</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-pink)">🌍</div>
-            <h3 data-i18n="feat5Title">3 لغات</h3>
-            <p data-i18n="feat5Desc">عربية، إنجليزية، فرنسية مع دعم RTL</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon" style="background: var(--grad-teal)">🌙</div>
-            <h3 data-i18n="feat6Title">الوضع الليلي</h3>
-            <p data-i18n="feat6Desc">تصميم مريح للعين في كل الأوقات</p>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <!-- LOGIN PAGE -->
-    <div id="page-login" class="page">
-      <div class="auth-page">
-        <div class="auth-bg">
-          <div class="auth-orb a1"></div>
-          <div class="auth-orb a2"></div>
-        </div>
-        <div class="auth-card modern-auth">
-          <div class="auth-brand">
-            <div class="brand-icon">📚</div>
-            <div class="brand-text">
-              <h1 class="brand-title">محفظة دروسي</h1>
-              <p class="brand-subtitle">منصتك التعليمية المتكاملة</p>
-            </div>
-          </div>
-          <h2 class="auth-title" data-i18n="welcomeBack">مرحباً بعودتك</h2>
-          <p class="auth-sub" data-i18n="loginSub">سجّل الدخول لمتابعة دروسك</p>
-          <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group modern-input">
-              <label data-i18n="email">البريد الإلكتروني</label>
-              <div class="input-with-icon">
-                <span class="input-icon">✉️</span>
-                <input type="email" id="login-email" class="form-input" placeholder="example@email.com" required />
-              </div>
-            </div>
-            <div class="form-group modern-input">
-              <label data-i18n="password">كلمة المرور</label>
-              <div class="input-wrap password-wrap">
-                <span class="input-icon">🔒</span>
-                <input type="password" id="login-password" class="form-input" placeholder="••••••••" required />
-                <button type="button" class="eye-btn" onclick="togglePass('login-password')">👁</button>
-              </div>
-            </div>
-            <div class="form-options">
-              <label class="remember-me">
-                <input type="checkbox" id="remember-me">
-                <span>تذكرني</span>
-              </label>
-              <a href="#" class="forgot-link" onclick="showPage('forgot')" data-i18n="forgotPass">نسيت كلمة المرور؟</a>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full modern-btn" id="login-btn">
-              <span data-i18n="login">تسجيل الدخول</span>
-              <span class="btn-spinner" id="login-spinner" style="display:none">⏳</span>
-            </button>
-          </form>
-          <div class="auth-divider">
-            <span>أو</span>
-          </div>
-          <p class="auth-switch">
-            <span data-i18n="noAccount">ليس لديك حساب؟</span>
-            <a href="#" class="auth-link-btn" onclick="showPage('register')" data-i18n="createAccount"> أنشئ حساباً</a>
-          </p>
+      <div class="hero-visual">
+        <div class="floating-cards">
+          <div class="fc fc1">📄 درس PDF</div>
+          <div class="fc fc2">❤️ 24 إعجاب</div>
+          <div class="fc fc3">💬 تعليق جديد</div>
+          <div class="fc fc4">👥 طلب صداقة</div>
+          <div class="fc fc5">⭐ تقييم 5/5</div>
         </div>
       </div>
     </div>
-
-    <!-- REGISTER PAGE -->
-    <div id="page-register" class="page">
-      <div class="auth-page">
-        <div class="auth-bg">
-          <div class="auth-orb a1"></div>
-          <div class="auth-orb a2"></div>
-        </div>
-        <div class="auth-card">
-          <div class="auth-logo">🎓</div>
-          <h2 class="auth-title" data-i18n="createAccount">إنشاء حساب جديد</h2>
-          <p class="auth-sub" data-i18n="registerSub">انضم الآن وابدأ رحلتك التعليمية</p>
-          <form id="register-form" onsubmit="handleRegister(event)">
-            <div class="form-group">
-              <label data-i18n="fullName">الاسم الكامل</label>
-              <input type="text" id="reg-name" class="form-input" required />
-            </div>
-            <div class="form-group">
-              <label data-i18n="email">البريد الإلكتروني</label>
-              <input type="email" id="reg-email" class="form-input" required />
-            </div>
-            <div class="form-group">
-              <label data-i18n="password">كلمة المرور</label>
-              <div class="input-wrap">
-                <input type="password" id="reg-password" class="form-input" placeholder="6+ أحرف" required minlength="6" />
-                <button type="button" class="eye-btn" onclick="togglePass('reg-password')">👁</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label data-i18n="confirmPass">تأكيد كلمة المرور</label>
-              <div class="input-wrap">
-                <input type="password" id="reg-confirm" class="form-input" required />
-                <button type="button" class="eye-btn" onclick="togglePass('reg-confirm')">👁</button>
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full">
-              <span data-i18n="createAccount">إنشاء الحساب</span>
-            </button>
-          </form>
-          <p class="auth-switch">
-            <span data-i18n="haveAccount">لديك حساب؟</span>
-            <a href="#" onclick="showPage('login')" data-i18n="login"> سجّل الدخول</a>
-          </p>
-        </div>
+    <section class="features-section">
+      <div class="section-header">
+        <h2>مميزات المنصة</h2>
+        <p>كل ما تحتاجه كطالب في مكان واحد</p>
       </div>
-    </div>
-
-    <!-- FORGOT PASSWORD PAGE -->
-    <div id="page-forgot" class="page">
-      <div class="auth-page">
-        <div class="auth-bg">
-          <div class="auth-orb a1"></div>
-          <div class="auth-orb a2"></div>
-        </div>
-        <div class="auth-card">
-          <div class="auth-logo">🔑</div>
-          <h2 class="auth-title" data-i18n="resetPass">استرجاع كلمة المرور</h2>
-          <p class="auth-sub" data-i18n="resetSub">أدخل بريدك وسنرسل لك رابط إعادة التعيين</p>
-          <form id="forgot-form" onsubmit="handleForgot(event)">
-            <div class="form-group">
-              <label data-i18n="email">البريد الإلكتروني</label>
-              <input type="email" id="forgot-email" class="form-input" required />
-            </div>
-            <button type="submit" class="btn btn-primary btn-full">
-              <span data-i18n="sendLink">إرسال الرابط</span>
-            </button>
-          </form>
-          <p class="auth-switch">
-            <a href="#" onclick="showPage('login')" data-i18n="backToLogin">← العودة لتسجيل الدخول</a>
-          </p>
-        </div>
+      <div class="features-grid">
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-blue)">👥</div><h3>شبكة اجتماعية</h3><p>أضف أصدقاء، تابعهم، وتفاعل مع دروسهم</p></div>
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-purple)">📤</div><h3>نشر الدروس</h3><p>شارك ملفاتك مع زملائك وأضف تعليقات</p></div>
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-green)">💬</div><h3>دردشة فورية</h3><p>تحدث مع أصدقائك مباشرة داخل المنصة</p></div>
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-orange)">❤️</div><h3>إعجاب وتقييم</h3><p>قيّم الدروس وأضف تعليقاتك</p></div>
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-pink)">🤖</div><h3>ذكاء اصطناعي</h3><p>مساعد ذكي يجيب على أسئلتك الدراسية</p></div>
+        <div class="feature-card"><div class="feature-icon" style="background:var(--grad-teal)">🧮</div><h3>حاسبة المعدل</h3><p>احسب معدلك وحلّل أداءك الدراسي</p></div>
       </div>
-    </div>
+    </section>
+  </div>
 
-    <!-- SUBJECTS PAGE -->
-    <div id="page-subjects" class="page">
-      <div class="inner-page">
-        <div class="page-header">
-          <div>
-            <h1 data-i18n="mySubjects">مقاييسي</h1>
-            <p data-i18n="subjectsSub">نظّم وأدر مقاييسك الدراسية</p>
-          </div>
-          <button class="btn btn-primary" onclick="openSubjectModal()">
-            <span>+</span> <span data-i18n="addSubject">إضافة مقياس</span>
+  <!-- ===== LOGIN ===== -->
+  <div id="page-login" class="page">
+    <div class="auth-page">
+      <div class="auth-bg"><div class="auth-orb a1"></div><div class="auth-orb a2"></div></div>
+      <div class="auth-card">
+        <div class="auth-logo">📚</div>
+        <h2 class="auth-title">مرحباً بعودتك</h2>
+        <p class="auth-sub">سجّل الدخول لمتابعة دروسك</p>
+        <!-- Social Login -->
+        <div class="social-login">
+          <button class="social-btn google-btn" onclick="loginWithGoogle()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span>الدخول بـ Google</span>
+          </button>
+          <button class="social-btn facebook-btn" onclick="loginWithFacebook()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            <span>الدخول بـ Facebook</span>
           </button>
         </div>
-        <div id="subjects-grid" class="subjects-grid">
-          <div class="loading-placeholder">
-            <div class="spinner"></div>
-            <p data-i18n="loading">جاري التحميل...</p>
+        <div class="divider"><span>أو بالبريد الإلكتروني</span></div>
+        <form onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="login-email" class="form-input" required/>
           </div>
-        </div>
+          <div class="form-group">
+            <label>كلمة المرور</label>
+            <div class="input-wrap">
+              <input type="password" id="login-password" class="form-input" required/>
+              <button type="button" class="eye-btn" onclick="togglePass('login-password')">👁</button>
+            </div>
+          </div>
+          <div class="form-options">
+            <a href="#" class="forgot-link" onclick="showPage('forgot')">نسيت كلمة المرور؟</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">تسجيل الدخول</button>
+        </form>
+        <p class="auth-switch">ليس لديك حساب؟ <a href="#" onclick="showPage('register')">أنشئ حساباً</a></p>
       </div>
     </div>
+  </div>
 
-    <!-- LESSONS PAGE -->
-    <div id="page-lessons" class="page">
-      <div class="inner-page">
-        <div class="page-header">
-          <div>
-            <h1 data-i18n="myLessons">دروسي</h1>
-            <p data-i18n="lessonsSub">ارفع وعرض ملفات دروسك</p>
-          </div>
-          <button class="btn btn-primary" onclick="openLessonModal()">
-            <span>+</span> <span data-i18n="addLesson">إضافة درس</span>
+  <!-- ===== REGISTER ===== -->
+  <div id="page-register" class="page">
+    <div class="auth-page">
+      <div class="auth-bg"><div class="auth-orb a1"></div><div class="auth-orb a2"></div></div>
+      <div class="auth-card">
+        <div class="auth-logo">🎓</div>
+        <h2 class="auth-title">إنشاء حساب جديد</h2>
+        <p class="auth-sub">انضم لمجتمع الطلاب</p>
+        <div class="social-login">
+          <button class="social-btn google-btn" onclick="loginWithGoogle()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span>التسجيل بـ Google</span>
+          </button>
+          <button class="social-btn facebook-btn" onclick="loginWithFacebook()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            <span>التسجيل بـ Facebook</span>
           </button>
         </div>
-        <div class="filter-bar">
-          <label data-i18n="filterBySubject">تصفية حسب المقياس:</label>
-          <select id="lesson-filter" class="form-select" onchange="filterLessons()">
-            <option value="all" data-i18n="allSubjects">جميع المقاييس</option>
-          </select>
-        </div>
-        <div id="lessons-grid" class="lessons-grid">
-          <div class="loading-placeholder">
-            <div class="spinner"></div>
-            <p data-i18n="loading">جاري التحميل...</p>
+        <div class="divider"><span>أو بالبريد الإلكتروني</span></div>
+        <form onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label>الاسم الكامل</label>
+            <input type="text" id="reg-name" class="form-input" required/>
           </div>
-        </div>
+          <div class="form-group">
+            <label>اسم المستخدم</label>
+            <input type="text" id="reg-username" class="form-input" placeholder="مثال: ahmed_student" required/>
+          </div>
+          <div class="form-group">
+            <label>الجامعة</label>
+            <input type="text" id="reg-university" class="form-input" placeholder="اسم جامعتك"/>
+          </div>
+          <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="reg-email" class="form-input" required/>
+          </div>
+          <div class="form-group">
+            <label>كلمة المرور</label>
+            <div class="input-wrap">
+              <input type="password" id="reg-password" class="form-input" minlength="6" required/>
+              <button type="button" class="eye-btn" onclick="togglePass('reg-password')">👁</button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">إنشاء الحساب</button>
+        </form>
+        <p class="auth-switch">لديك حساب؟ <a href="#" onclick="showPage('login')">سجّل الدخول</a></p>
       </div>
-    </div>
-
-    <!-- CHAT PAGE -->
-    <div id="page-chat" class="page">
-      <div class="chat-layout">
-        <div class="chat-sidebar">
-          <div class="chat-sidebar-header">
-            <span class="robot-icon">🤖</span>
-            <span data-i18n="aiAssistant">مساعد ذكي</span>
-          </div>
-          <button class="btn btn-primary btn-full" onclick="newChat()" style="margin:1rem;width:calc(100% - 2rem)">
-            <span>+</span> <span data-i18n="newChat">محادثة جديدة</span>
-          </button>
-          <div id="chat-history" class="chat-history"></div>
-        </div>
-        <div class="chat-main">
-          <div class="chat-header-bar">
-            <span>🤖</span>
-            <span data-i18n="aiAssistant">المساعد الذكي</span>
-            <div class="chat-model-badge">Gemini AI</div>
-          </div>
-          <div id="chat-messages" class="chat-messages">
-            <div class="chat-welcome">
-              <div class="welcome-robot">🤖</div>
-              <h3 data-i18n="chatWelcome">مرحباً! كيف يمكنني مساعدتك؟</h3>
-              <p data-i18n="chatWelcomeSub">اسألني أي شيء عن دروسك أو أي موضوع تريده</p>
-              <div class="quick-prompts">
-                <button class="quick-btn" onclick="sendQuickPrompt(this)">شرح مفهوم رياضي</button>
-                <button class="quick-btn" onclick="sendQuickPrompt(this)">تلخيص نص</button>
-                <button class="quick-btn" onclick="sendQuickPrompt(this)">مساعدة في الواجب</button>
-                <button class="quick-btn" onclick="sendQuickPrompt(this)">Explain a concept</button>
-              </div>
-            </div>
-          </div>
-          <div id="chat-image-preview" class="chat-image-preview" style="display:none"></div>
-          <div class="chat-input-area">
-            <div class="chat-input-wrap">
-              <label for="chat-image-input" class="chat-image-btn" title="رفع صورة 📷">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-              </label>
-              <input type="file" id="chat-image-input" accept="image/*" onchange="handleChatImageUpload(event)" style="display:none" />
-              <textarea id="chat-input" class="chat-textarea" placeholder="" data-i18n-placeholder="chatPlaceholder" rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
-              <button class="chat-send-btn" onclick="sendMessage()" id="send-btn">
-                <span>➤</span>
-              </button>
-            </div>
-            <p class="chat-disclaimer" data-i18n="chatDisclaimer">قد يرتكب الذكاء الاصطناعي أخطاء — تحقق دائماً من المعلومات المهمة</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CALCULATOR PAGE -->
-    <div id="page-calculator" class="page">
-      <div class="inner-page">
-        <div class="page-header">
-          <div>
-            <h1 data-i18n="gradeCalc">حاسبة المعدل</h1>
-            <p data-i18n="calcSub">احسب معدلك وحلل أداءك الدراسي</p>
-          </div>
-        </div>
-        <div class="calc-layout">
-          <div class="calc-form-section">
-            <div class="calc-card">
-              <h3 data-i18n="gradesInput">إدخال الدرجات</h3>
-              <div id="grades-list">
-                <div class="grade-row">
-                  <input type="text" class="form-input" placeholder="" data-i18n-placeholder="subjectName">
-                  <input type="number" class="form-input" placeholder="" data-i18n-placeholder="grade" min="0" max="20">
-                  <input type="number" class="form-input" placeholder="" data-i18n-placeholder="coefficient" min="1" max="10" value="1">
-                  <button class="btn-icon danger" onclick="removeGradeRow(this)">🗑</button>
-                </div>
-              </div>
-              <button class="btn btn-outline btn-full" onclick="addGradeRow()" style="margin-top:1rem">
-                + <span data-i18n="addGrade">إضافة مادة</span>
-              </button>
-              <button class="btn btn-primary btn-full" onclick="calculateGrades()" style="margin-top:1rem">
-                <span data-i18n="calculate">احسب المعدل</span>
-              </button>
-            </div>
-          </div>
-          <div class="calc-result-section" id="calc-results" style="display:none">
-            <div class="result-card">
-              <div class="result-circle" id="result-circle">
-                <span id="result-score">0.00</span>
-                <small>/20</small>
-              </div>
-              <h3 id="result-mention" class="result-mention"></h3>
-              <div class="result-bars" id="result-bars"></div>
-              <div class="result-analysis" id="result-analysis"></div>
-              <div class="result-tips" id="result-tips"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADMIN PAGE -->
-    <div id="page-admin" class="page">
-      <div class="inner-page">
-        <div class="page-header">
-          <div>
-            <h1 data-i18n="adminPanel">لوحة الإدارة</h1>
-            <p data-i18n="adminSub">إدارة المستخدمين والمحتوى</p>
-          </div>
-        </div>
-        <div class="admin-stats-grid">
-          <div class="admin-stat-card">
-            <div class="admin-stat-icon">👥</div>
-            <div class="admin-stat-info">
-              <span id="total-users" class="admin-stat-num">—</span>
-              <span data-i18n="totalUsers">إجمالي المستخدمين</span>
-            </div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-icon">📚</div>
-            <div class="admin-stat-info">
-              <span id="total-subjects" class="admin-stat-num">—</span>
-              <span data-i18n="totalSubjects">إجمالي المقاييس</span>
-            </div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-icon">📁</div>
-            <div class="admin-stat-info">
-              <span id="total-files" class="admin-stat-num">—</span>
-              <span data-i18n="totalFiles">إجمالي الملفات</span>
-            </div>
-          </div>
-        </div>
-        <div class="admin-section">
-          <h3 data-i18n="manageUsers">إدارة المستخدمين</h3>
-          <div id="users-table-wrap">
-            <div class="loading-placeholder"><div class="spinner"></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ABOUT PAGE -->
-    <div id="page-about" class="page">
-      <div class="about-page">
-        <div class="about-hero">
-          <div class="about-orb"></div>
-          <div class="about-content">
-            <div class="about-avatar">دأ</div>
-            <h1 data-i18n="aboutTitle">حول المشروع</h1>
-            <div class="about-owner-info">
-              <h2>دحو أسامة</h2>
-              <p class="about-uni">🎓 <span data-i18n="university">جامعة النعامة</span></p>
-            </div>
-          </div>
-        </div>
-        <div class="about-cards">
-          <div class="about-card">
-            <div class="about-card-icon">🎯</div>
-            <h3 data-i18n="projectGoal">هدف المشروع</h3>
-            <p data-i18n="projectGoalDesc">تصميم منصة تعليمية شاملة تساعد الطلاب على تنظيم دروسهم، رفع ملفاتهم، والاستفادة من الذكاء الاصطناعي في دراستهم</p>
-          </div>
-          <div class="about-card">
-            <div class="about-card-icon">🛠</div>
-            <h3 data-i18n="techUsed">التقنيات المستخدمة</h3>
-            <div class="tech-tags">
-              <span class="tech-tag">HTML5</span>
-              <span class="tech-tag">CSS3</span>
-              <span class="tech-tag">JavaScript</span>
-              <span class="tech-tag">Supabase</span>
-              <span class="tech-tag">Gemini AI</span>
-            </div>
-          </div>
-          <div class="about-card">
-            <div class="about-card-icon">✨</div>
-            <h3 data-i18n="features">المميزات</h3>
-            <ul class="about-list">
-              <li data-i18n="feat1Title">إدارة المقاييس</li>
-              <li data-i18n="feat2Title">رفع الملفات</li>
-              <li data-i18n="feat3Title">الذكاء الاصطناعي</li>
-              <li data-i18n="feat4Title">حاسبة المعدل</li>
-              <li>Dark Mode</li>
-              <li data-i18n="feat5Title">3 لغات</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- ===== MODALS ===== -->
-
-  <!-- Subject Modal -->
-  <div id="subject-modal" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="subject-modal-title" data-i18n="addSubject">إضافة مقياس</h3>
-        <button class="modal-close" onclick="closeModal('subject-modal')">✕</button>
-      </div>
-      <form id="subject-form" onsubmit="saveSubject(event)">
-        <div class="form-group">
-          <label data-i18n="subjectName">اسم المقياس</label>
-          <input type="text" id="subject-name" class="form-input" required />
-        </div>
-        <div class="form-group">
-          <label data-i18n="subjectColor">اللون</label>
-          <div class="color-picker">
-            <div class="color-opt active" data-color="#6366f1" style="background:#6366f1" onclick="selectColor('#6366f1', this)"></div>
-            <div class="color-opt" data-color="#10b981" style="background:#10b981" onclick="selectColor('#10b981', this)"></div>
-            <div class="color-opt" data-color="#f59e0b" style="background:#f59e0b" onclick="selectColor('#f59e0b', this)"></div>
-            <div class="color-opt" data-color="#ef4444" style="background:#ef4444" onclick="selectColor('#ef4444', this)"></div>
-            <div class="color-opt" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectColor('#8b5cf6', this)"></div>
-            <div class="color-opt" data-color="#06b6d4" style="background:#06b6d4" onclick="selectColor('#06b6d4', this)"></div>
-            <div class="color-opt" data-color="#f97316" style="background:#f97316" onclick="selectColor('#f97316', this)"></div>
-            <div class="color-opt" data-color="#ec4899" style="background:#ec4899" onclick="selectColor('#ec4899', this)"></div>
-          </div>
-          <input type="hidden" id="subject-color" value="#6366f1" />
-        </div>
-        <div class="form-group">
-          <label data-i18n="subjectIcon">الرمز</label>
-          <div class="emoji-picker">
-            <span onclick="selectEmoji('📚',this)" class="emoji-opt active">📚</span>
-            <span onclick="selectEmoji('🔬',this)" class="emoji-opt">🔬</span>
-            <span onclick="selectEmoji('🧮',this)" class="emoji-opt">🧮</span>
-            <span onclick="selectEmoji('💻',this)" class="emoji-opt">💻</span>
-            <span onclick="selectEmoji('🏛',this)" class="emoji-opt">🏛</span>
-            <span onclick="selectEmoji('🌍',this)" class="emoji-opt">🌍</span>
-            <span onclick="selectEmoji('⚡',this)" class="emoji-opt">⚡</span>
-            <span onclick="selectEmoji('🎨',this)" class="emoji-opt">🎨</span>
-            <span onclick="selectEmoji('🌿',this)" class="emoji-opt">🌿</span>
-            <span onclick="selectEmoji('📐',this)" class="emoji-opt">📐</span>
-          </div>
-          <input type="hidden" id="subject-icon" value="📚" />
-        </div>
-        <div class="form-group">
-          <label data-i18n="coefficient">المعامل</label>
-          <input type="number" id="subject-coefficient" class="form-input" min="1" max="10" value="1" />
-        </div>
-        <input type="hidden" id="subject-id" value="" />
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('subject-modal')" data-i18n="cancel">إلغاء</button>
-          <button type="submit" class="btn btn-primary" data-i18n="save">حفظ</button>
-        </div>
-      </form>
     </div>
   </div>
 
-  <!-- Lesson Modal -->
-  <div id="lesson-modal" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="lesson-modal-title" data-i18n="addLesson">إضافة درس</h3>
-        <button class="modal-close" onclick="closeModal('lesson-modal')">✕</button>
-      </div>
-      <form id="lesson-form" onsubmit="saveLesson(event)">
-        <div class="form-group">
-          <label data-i18n="lessonTitle">عنوان الدرس</label>
-          <input type="text" id="lesson-title-input" class="form-input" required />
-        </div>
-        <div class="form-group">
-          <label data-i18n="subject">المقياس</label>
-          <select id="lesson-subject-sel" class="form-select" required></select>
-        </div>
-        <div class="form-group">
-          <label data-i18n="lessonDesc">الوصف (اختياري)</label>
-          <textarea id="lesson-desc" class="form-textarea" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-          <label data-i18n="uploadFile">رفع ملف</label>
-          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondrop="dropFile(event)">
-            <div class="upload-icon">📤</div>
-            <p data-i18n="uploadText">اسحب الملف هنا أو اضغط للاختيار</p>
-            <small>PDF, Word, PPT, PNG, JPG, MP4, MP3, TXT</small>
-            <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.mp4,.mp3,.wav,.txt" onchange="handleFileSelect(event)" />
+  <!-- ===== FORGOT ===== -->
+  <div id="page-forgot" class="page">
+    <div class="auth-page">
+      <div class="auth-bg"><div class="auth-orb a1"></div><div class="auth-orb a2"></div></div>
+      <div class="auth-card">
+        <div class="auth-logo">🔑</div>
+        <h2 class="auth-title">استرجاع كلمة المرور</h2>
+        <form onsubmit="handleForgot(event)">
+          <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="forgot-email" class="form-input" required/>
           </div>
-          <div id="file-preview" class="file-preview" style="display:none"></div>
-        </div>
-        <div class="upload-progress" id="upload-progress" style="display:none">
-          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-          <span id="progress-text">0%</span>
-        </div>
-        <input type="hidden" id="lesson-id" value="" />
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('lesson-modal')" data-i18n="cancel">إلغاء</button>
-          <button type="submit" class="btn btn-primary" data-i18n="save">حفظ</button>
-        </div>
-      </form>
+          <button type="submit" class="btn btn-primary btn-full">إرسال الرابط</button>
+        </form>
+        <p class="auth-switch"><a href="#" onclick="showPage('login')">← العودة لتسجيل الدخول</a></p>
+      </div>
     </div>
   </div>
 
-  <!-- File Viewer Modal -->
-  <div id="viewer-modal" class="modal-overlay viewer-overlay">
-    <div class="modal viewer-modal">
-      <div class="modal-header">
-        <h3 id="viewer-title">عرض الملف</h3>
-        <div class="viewer-actions">
-          <a id="viewer-download" href="#" download class="btn btn-outline-sm" data-i18n="download">تحميل</a>
-          <button class="modal-close" onclick="closeModal('viewer-modal')">✕</button>
+  <!-- ===== FEED (Social Wall) ===== -->
+  <div id="page-feed" class="page">
+    <div class="social-layout">
+      <!-- Left Sidebar -->
+      <div class="social-sidebar-left">
+        <div class="sidebar-profile-mini" id="sidebar-profile-mini"></div>
+        <div class="sidebar-nav">
+          <button class="sidebar-nav-btn active" onclick="showPage('feed')">🏠 الرئيسية</button>
+          <button class="sidebar-nav-btn" onclick="showPage('discover')">🔍 اكتشف طلاباً</button>
+          <button class="sidebar-nav-btn" onclick="showPage('friends')">👥 الأصدقاء</button>
+          <button class="sidebar-nav-btn" onclick="showPage('messages')">💬 الرسائل</button>
+          <button class="sidebar-nav-btn" onclick="showPage('subjects')">📚 مقاييسي</button>
+          <button class="sidebar-nav-btn" onclick="showPage('lessons')">📖 دروسي</button>
+          <button class="sidebar-nav-btn" onclick="showPage('chat')">🤖 الذكاء الاصطناعي</button>
+          <button class="sidebar-nav-btn" onclick="showPage('calculator')">🧮 الحاسبة</button>
+          <button class="sidebar-nav-btn" onclick="showPage('about')">ℹ️ حول التطبيق</button>
         </div>
       </div>
-      <div id="viewer-content" class="viewer-content"></div>
+      <!-- Main Feed -->
+      <div class="social-main">
+        <!-- Post Creator -->
+        <div class="post-creator" id="post-creator">
+          <div class="post-creator-top">
+            <div class="post-creator-avatar" id="post-creator-avatar"></div>
+            <div class="post-creator-input" onclick="openPostModal()">ماذا تريد أن تشارك؟ 📚</div>
+          </div>
+          <div class="post-creator-actions">
+            <button onclick="openPostModal('file')">📎 ملف</button>
+            <button onclick="openPostModal('image')">🖼️ صورة</button>
+            <button onclick="openPostModal('video')">🎥 فيديو</button>
+            <button onclick="openPostModal('text')">✍️ نص</button>
+          </div>
+        </div>
+        <!-- Posts Feed -->
+        <div id="posts-feed">
+          <div class="loading-placeholder"><div class="spinner"></div><p>جاري تحميل المنشورات...</p></div>
+        </div>
+      </div>
+      <!-- Right Sidebar -->
+      <div class="social-sidebar-right">
+        <div class="sidebar-widget">
+          <h4>طلبات الصداقة</h4>
+          <div id="friend-requests-widget"></div>
+        </div>
+        <div class="sidebar-widget">
+          <h4>أشخاص قد تعرفهم</h4>
+          <div id="suggestions-widget"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Confirm Modal -->
-  <div id="confirm-modal" class="modal-overlay">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3 id="confirm-title" data-i18n="confirmDelete">تأكيد الحذف</h3>
-        <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+  <!-- ===== DISCOVER ===== -->
+  <div id="page-discover" class="page">
+    <div class="inner-page">
+      <div class="page-header">
+        <div><h1>🔍 اكتشف طلاباً</h1><p>ابحث وأضف زملاءك</p></div>
       </div>
-      <p id="confirm-message" data-i18n="confirmMsg">هل أنت متأكد من حذف هذا العنصر؟</p>
+      <div class="search-bar-big">
+        <input type="text" id="discover-search" class="form-input" placeholder="ابحث باسم المستخدم أو الاسم أو الجامعة..." oninput="discoverSearch(this.value)"/>
+      </div>
+      <div id="discover-results" class="users-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== FRIENDS ===== -->
+  <div id="page-friends" class="page">
+    <div class="inner-page">
+      <div class="page-header">
+        <div><h1>👥 الأصدقاء</h1></div>
+      </div>
+      <div class="friends-tabs">
+        <button class="friends-tab active" onclick="switchFriendsTab('all',this)">كل الأصدقاء</button>
+        <button class="friends-tab" onclick="switchFriendsTab('requests',this)">طلبات معلقة <span id="req-count-badge" class="tab-badge"></span></button>
+        <button class="friends-tab" onclick="switchFriendsTab('sent',this)">طلبات مرسلة</button>
+      </div>
+      <div id="friends-content" class="users-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== MESSAGES ===== -->
+  <div id="page-messages" class="page">
+    <div class="messages-layout">
+      <div class="messages-sidebar">
+        <div class="messages-sidebar-header">
+          <h3>💬 الرسائل</h3>
+          <input type="text" placeholder="بحث..." class="form-input" style="margin-top:0.7rem" oninput="searchConversations(this.value)"/>
+        </div>
+        <div id="conversations-list"></div>
+      </div>
+      <div class="messages-main" id="messages-main">
+        <div class="messages-empty">
+          <div style="font-size:4rem;margin-bottom:1rem">💬</div>
+          <h3>اختر محادثة</h3>
+          <p>اختر صديقاً لبدء المحادثة</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE PAGE ===== -->
+  <div id="page-profile" class="page">
+    <div class="profile-page">
+      <div class="profile-cover" id="profile-cover">
+        <button class="change-cover-btn" id="change-cover-btn" onclick="changeCover()" style="display:none">📷 تغيير الغلاف</button>
+      </div>
+      <div class="profile-info-bar">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profile-avatar-display"></div>
+          <button class="change-avatar-btn" id="change-avatar-btn" onclick="changeAvatar()" style="display:none">📷</button>
+        </div>
+        <div class="profile-meta">
+          <h2 id="profile-name-display"></h2>
+          <p id="profile-username-display" class="profile-username"></p>
+          <p id="profile-uni-display" class="profile-uni-display"></p>
+          <p id="profile-bio-display" class="profile-bio-display"></p>
+        </div>
+        <div class="profile-actions" id="profile-actions"></div>
+      </div>
+      <div class="profile-stats-bar">
+        <div class="profile-stat"><span id="profile-posts-count">0</span><span>منشور</span></div>
+        <div class="profile-stat"><span id="profile-friends-count">0</span><span>صديق</span></div>
+        <div class="profile-stat"><span id="profile-likes-count">0</span><span>إعجاب</span></div>
+      </div>
+      <div class="profile-tabs">
+        <button class="profile-tab active" onclick="switchProfileTab('posts',this)">المنشورات</button>
+        <button class="profile-tab" onclick="switchProfileTab('lessons',this)">الدروس</button>
+      </div>
+      <div id="profile-content" class="profile-content"></div>
+    </div>
+  </div>
+
+  <!-- ===== SUBJECTS ===== -->
+  <div id="page-subjects" class="page">
+    <div class="inner-page">
+      <div class="page-header">
+        <div><h1>📚 مقاييسي</h1><p>نظّم وأدر مقاييسك الدراسية</p></div>
+        <button class="btn btn-primary" onclick="openSubjectModal()">+ إضافة مقياس</button>
+      </div>
+      <div id="subjects-grid" class="subjects-grid">
+        <div class="loading-placeholder"><div class="spinner"></div><p>جاري التحميل...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LESSONS ===== -->
+  <div id="page-lessons" class="page">
+    <div class="inner-page">
+      <div class="page-header">
+        <div><h1>📖 دروسي</h1><p>ارفع وعرض ملفات دروسك</p></div>
+        <button class="btn btn-primary" onclick="openLessonModal()">+ إضافة درس</button>
+      </div>
+      <div class="filter-bar">
+        <label>تصفية:</label>
+        <select id="lesson-filter" class="form-select" onchange="filterLessons()">
+          <option value="all">جميع المقاييس</option>
+        </select>
+      </div>
+      <div id="lessons-grid" class="lessons-grid">
+        <div class="loading-placeholder"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AI CHAT ===== -->
+  <div id="page-chat" class="page">
+    <div class="chat-layout">
+      <div class="chat-sidebar">
+        <div class="chat-sidebar-header">🤖 المساعد الذكي</div>
+        <button class="btn btn-primary" onclick="newChat()" style="margin:1rem;width:calc(100% - 2rem)">+ محادثة جديدة</button>
+        <div id="chat-history" class="chat-history"></div>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header-bar"><span>🤖</span><span>المساعد الذكي</span><div class="chat-model-badge">AI</div></div>
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-welcome">
+            <div class="welcome-robot">🤖</div>
+            <h3>مرحباً! كيف يمكنني مساعدتك؟</h3>
+            <p>اسألني أي شيء عن دروسك</p>
+            <div class="quick-prompts">
+              <button class="quick-btn" onclick="sendQuickPrompt(this)">شرح مفهوم رياضي</button>
+              <button class="quick-btn" onclick="sendQuickPrompt(this)">تلخيص نص</button>
+              <button class="quick-btn" onclick="sendQuickPrompt(this)">مساعدة في الواجب</button>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-wrap">
+            <textarea id="chat-input" class="chat-textarea" placeholder="اكتب سؤالك هنا..." rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="chat-send-btn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CALCULATOR ===== -->
+  <div id="page-calculator" class="page">
+    <div class="inner-page">
+      <div class="page-header"><div><h1>🧮 حاسبة المعدل</h1><p>احسب معدلك وحلل أداءك</p></div></div>
+      <div class="calc-layout">
+        <div class="calc-form-section">
+          <div class="calc-card">
+            <h3>إدخال الدرجات</h3>
+            <div id="grades-list">
+              <div class="grade-row">
+                <input type="text" class="form-input" placeholder="اسم المادة">
+                <input type="number" class="form-input" placeholder="الدرجة /20" min="0" max="20">
+                <input type="number" class="form-input" placeholder="المعامل" min="1" max="10" value="1">
+                <button class="btn-icon danger" onclick="removeGradeRow(this)">🗑</button>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-full" onclick="addGradeRow()" style="margin-top:1rem">+ إضافة مادة</button>
+            <button class="btn btn-primary btn-full" onclick="calculateGrades()" style="margin-top:1rem">احسب المعدل</button>
+          </div>
+        </div>
+        <div class="calc-result-section" id="calc-results" style="display:none">
+          <div class="result-card">
+            <div class="result-circle" id="result-circle">
+              <span id="result-score">0.00</span><small>/20</small>
+            </div>
+            <h3 id="result-mention" class="result-mention"></h3>
+            <div class="result-bars" id="result-bars"></div>
+            <div class="result-analysis" id="result-analysis"></div>
+            <div class="result-tips" id="result-tips"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS ===== -->
+  <div id="page-settings" class="page">
+    <div class="inner-page" style="max-width:600px">
+      <div class="page-header"><div><h1>⚙️ الإعدادات</h1></div></div>
+      <div class="settings-card">
+        <h3>تعديل الملف الشخصي</h3>
+        <div class="form-group"><label>الاسم الكامل</label><input type="text" id="settings-name" class="form-input"/></div>
+        <div class="form-group"><label>اسم المستخدم</label><input type="text" id="settings-username" class="form-input"/></div>
+        <div class="form-group"><label>الجامعة</label><input type="text" id="settings-university" class="form-input"/></div>
+        <div class="form-group"><label>نبذة عنك</label><textarea id="settings-bio" class="form-textarea" rows="3" placeholder="اكتب نبذة قصيرة..."></textarea></div>
+        <button class="btn btn-primary" onclick="saveSettings()">حفظ التغييرات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABOUT ===== -->
+  <div id="page-about" class="page">
+    <div class="about-page">
+      <div class="about-hero">
+        <div class="about-orb"></div>
+        <div class="about-content">
+          <div class="about-avatar">دأ</div>
+          <h1>حول التطبيق</h1>
+          <div class="about-owner-info">
+            <h2>دحو أسامة</h2>
+            <p class="about-uni">🎓 جامعة النعامة</p>
+          </div>
+        </div>
+      </div>
+      <div class="about-cards">
+        <div class="about-card">
+          <div class="about-card-icon">🎯</div>
+          <h3>هدف التطبيق</h3>
+          <p>منصة اجتماعية تعليمية تجمع الطلاب لمشاركة الدروس والتعاون في الدراسة وبناء مجتمع طلابي متكامل</p>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">✨</div>
+          <h3>المميزات</h3>
+          <ul class="about-list">
+            <li>شبكة اجتماعية للطلاب</li>
+            <li>مشاركة الدروس والملفات</li>
+            <li>دردشة فورية</li>
+            <li>ذكاء اصطناعي</li>
+            <li>حاسبة المعدل</li>
+            <li>دعم 3 لغات</li>
+          </ul>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">📬</div>
+          <h3>التواصل</h3>
+          <p>جامعة النعامة — الجزائر</p>
+          <p style="margin-top:0.5rem;color:var(--text3);font-size:0.85rem">النسخة 2.0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Post Modal -->
+<div id="post-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📤 نشر درس أو محتوى</h3>
+      <button class="modal-close" onclick="closeModal('post-modal')">✕</button>
+    </div>
+    <form id="post-form" onsubmit="submitPost(event)" style="padding:1.5rem">
+      <div class="form-group">
+        <textarea id="post-text" class="form-textarea" rows="3" placeholder="اكتب وصفاً للدرس أو محتوى تريد مشاركته..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>المقياس (اختياري)</label>
+        <select id="post-subject" class="form-select">
+          <option value="">بدون مقياس</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>رفع ملف (PDF, Word, PPT, صورة, فيديو, صوت)</label>
+        <div class="upload-zone" id="post-upload-zone" onclick="document.getElementById('post-file-input').click()" ondragover="dragOver(event)" ondrop="dropPostFile(event)">
+          <div class="upload-icon">📤</div>
+          <p>اسحب الملف هنا أو اضغط للاختيار</p>
+          <small>جميع الصيغ مدعومة</small>
+          <input type="file" id="post-file-input" style="display:none" accept="*/*" onchange="handlePostFile(event)"/>
+        </div>
+        <div id="post-file-preview" style="display:none"></div>
+      </div>
+      <div id="post-upload-progress" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="post-progress-fill"></div></div>
+      </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeModal('confirm-modal')" data-i18n="cancel">إلغاء</button>
-        <button class="btn btn-danger" id="confirm-ok-btn" data-i18n="delete">حذف</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal('post-modal')">إلغاء</button>
+        <button type="submit" class="btn btn-primary">نشر 🚀</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Subject Modal -->
+<div id="subject-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="subject-modal-title">إضافة مقياس</h3>
+      <button class="modal-close" onclick="closeModal('subject-modal')">✕</button>
+    </div>
+    <form id="subject-form" onsubmit="saveSubject(event)" style="padding:1.5rem">
+      <div class="form-group"><label>اسم المقياس</label><input type="text" id="subject-name" class="form-input" required/></div>
+      <div class="form-group">
+        <label>اللون</label>
+        <div class="color-picker">
+          <div class="color-opt active" data-color="#6366f1" style="background:#6366f1" onclick="selectColor('#6366f1',this)"></div>
+          <div class="color-opt" data-color="#10b981" style="background:#10b981" onclick="selectColor('#10b981',this)"></div>
+          <div class="color-opt" data-color="#f59e0b" style="background:#f59e0b" onclick="selectColor('#f59e0b',this)"></div>
+          <div class="color-opt" data-color="#ef4444" style="background:#ef4444" onclick="selectColor('#ef4444',this)"></div>
+          <div class="color-opt" data-color="#8b5cf6" style="background:#8b5cf6" onclick="selectColor('#8b5cf6',this)"></div>
+          <div class="color-opt" data-color="#06b6d4" style="background:#06b6d4" onclick="selectColor('#06b6d4',this)"></div>
+        </div>
+        <input type="hidden" id="subject-color" value="#6366f1"/>
+      </div>
+      <div class="form-group">
+        <label>الرمز</label>
+        <div class="emoji-picker">
+          <span onclick="selectEmoji('📚',this)" class="emoji-opt active">📚</span>
+          <span onclick="selectEmoji('🔬',this)" class="emoji-opt">🔬</span>
+          <span onclick="selectEmoji('🧮',this)" class="emoji-opt">🧮</span>
+          <span onclick="selectEmoji('💻',this)" class="emoji-opt">💻</span>
+          <span onclick="selectEmoji('🏛',this)" class="emoji-opt">🏛</span>
+          <span onclick="selectEmoji('🌍',this)" class="emoji-opt">🌍</span>
+          <span onclick="selectEmoji('⚡',this)" class="emoji-opt">⚡</span>
+          <span onclick="selectEmoji('🎨',this)" class="emoji-opt">🎨</span>
+        </div>
+        <input type="hidden" id="subject-icon" value="📚"/>
+      </div>
+      <div class="form-group"><label>المعامل</label><input type="number" id="subject-coefficient" class="form-input" min="1" max="10" value="1"/></div>
+      <input type="hidden" id="subject-id" value=""/>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('subject-modal')">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Lesson Modal -->
+<div id="lesson-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="lesson-modal-title">إضافة درس</h3>
+      <button class="modal-close" onclick="closeModal('lesson-modal')">✕</button>
+    </div>
+    <form id="lesson-form" onsubmit="saveLesson(event)" style="padding:1.5rem">
+      <div class="form-group"><label>عنوان الدرس</label><input type="text" id="lesson-title-input" class="form-input" required/></div>
+      <div class="form-group"><label>المقياس</label><select id="lesson-subject-sel" class="form-select" required></select></div>
+      <div class="form-group"><label>الوصف</label><textarea id="lesson-desc" class="form-textarea" rows="2"></textarea></div>
+      <div class="form-group">
+        <label>رفع ملف</label>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondrop="dropFile(event)">
+          <div class="upload-icon">📤</div>
+          <p>اسحب الملف هنا أو اضغط للاختيار</p>
+          <small>PDF, Word, PPT, صورة, فيديو, صوت, TXT</small>
+          <input type="file" id="file-input" style="display:none" accept="*/*" onchange="handleFileSelect(event)"/>
+        </div>
+        <div id="file-preview" class="file-preview" style="display:none"></div>
+      </div>
+      <div class="upload-progress" id="upload-progress" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <span id="progress-text">0%</span>
+      </div>
+      <input type="hidden" id="lesson-id" value=""/>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('lesson-modal')">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Viewer Modal -->
+<div id="viewer-modal" class="modal-overlay viewer-overlay">
+  <div class="modal viewer-modal">
+    <div class="modal-header">
+      <h3 id="viewer-title">عرض الملف</h3>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <a id="viewer-download" href="#" download class="btn btn-outline-sm">تحميل</a>
+        <button class="modal-close" onclick="closeModal('viewer-modal')">✕</button>
+      </div>
+    </div>
+    <div id="viewer-content" class="viewer-content"></div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>تأكيد الحذف</h3>
+      <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+    </div>
+    <p style="padding:1rem 1.5rem;color:var(--text2)">هل أنت متأكد من حذف هذا العنصر؟</p>
+    <div class="modal-footer" style="padding:0 1.5rem 1.5rem">
+      <button class="btn btn-outline" onclick="closeModal('confirm-modal')">إلغاء</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Comments Modal -->
+<div id="comments-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>💬 التعليقات</h3>
+      <button class="modal-close" onclick="closeModal('comments-modal')">✕</button>
+    </div>
+    <div id="comments-list" style="padding:1rem;max-height:350px;overflow-y:auto"></div>
+    <div style="padding:1rem;border-top:1px solid var(--border)">
+      <div style="display:flex;gap:0.5rem">
+        <input type="text" id="comment-input" class="form-input" placeholder="اكتب تعليقاً..." onkeydown="if(event.key==='Enter')submitComment()"/>
+        <button class="btn btn-primary" onclick="submitComment()">إرسال</button>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="main.js"></script>
+<input type="hidden" id="current-post-id" value=""/>
+<input type="file" id="avatar-file-input" style="display:none" accept="image/*" onchange="uploadAvatar(event)"/>
+<input type="file" id="cover-file-input" style="display:none" accept="image/*" onchange="uploadCover(event)"/>
+
+<script src="main.js"></script>
 </body>
 </html>
